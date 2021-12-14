@@ -45,6 +45,7 @@
 
 // #include <functional>
 #include "torch/csrc/lazy/core/shape.h"
+#include "aten/src/ATen/core/Reduction.h"
 #include "aten/src/ATen/native/ReduceOpsUtils.h"
 #include "lazy_tensor_core/csrc/ts_backend/LazyShapeInference.h"
 #include "torch/csrc/api/include/torch/enum.h"
@@ -250,6 +251,24 @@ std::vector<Shape> compute_shape_log_sigmoid_forward(const at::Tensor& self) {
 std::vector<Shape> compute_shape_log_sigmoid_backward(const at::Tensor& grad_output, const at::Tensor& self, const at::Tensor& buffer) {
   // Based on definition of aten/src/ATen/native/Activation.cpp::log_sigmoid_backward_cpu*.
   return {Shape(grad_output.scalar_type(), grad_output.sizes().vec())};
+}
+
+std::vector<Shape> compute_shape_nll_loss2d_forward(
+    const at::Tensor& self, const at::Tensor& target,
+    const c10::optional<at::Tensor>& weight, int64_t reduction,
+    int64_t ignore_index) {
+  // Based on definition of aten/src/ATen/native/LossNLL2d.cpp:nll_loss2d_forward_cpu
+  const std::vector<int64_t>& sizes =
+      (reduction == at::Reduction::Reduction::None ? target.sizes().vec()
+                                                   : std::vector<int64_t>({}));
+  return {Shape(self.scalar_type(), sizes), Shape(self.scalar_type(), {})};
+}
+
+std::vector<Shape> compute_shape_nll_loss2d_backward(
+    const at::Tensor& grad_output, const at::Tensor& self,
+    const at::Tensor& target, const c10::optional<at::Tensor>& weight,
+    int64_t reduction, int64_t ignore_index, const at::Tensor& total_weight) {
+  return {Shape(self.scalar_type(), self.sizes().vec())};
 }
 
 } // namespace ops
